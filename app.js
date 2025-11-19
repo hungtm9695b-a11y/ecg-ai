@@ -39,6 +39,13 @@ const explainRhythm = document.getElementById("explain-rhythm");
 const explainIschemia = document.getElementById("explain-ischemia");
 const recommendationsList = document.getElementById("recommendations");
 
+// HEAR & ECG detail elements
+const hearTotalEl = document.getElementById("hear-total");
+const hearBreakdownTextEl = document.getElementById("hear-breakdown-text");
+const hearRiskLabelEl = document.getElementById("hear-risk-label");
+const ecgSummaryEl = document.getElementById("ecg-summary");
+const ecgCategoryEl = document.getElementById("ecg-category");
+
 // =======================
 // STEP CONTROL
 // =======================
@@ -118,7 +125,7 @@ function validateStep2() {
 }
 
 function validateStep3() {
-  // ít nhất một triệu chứng được chọn "Có" hoặc "Không" (mỗi câu đều phải chọn)
+  // mỗi câu đều phải chọn Có/Không
   for (let i = 1; i <= 6; i++) {
     const yes = document.querySelector(`input[name="sym${i}"][value="yes"]`);
     const no = document.querySelector(`input[name="sym${i}"][value="no"]`);
@@ -127,7 +134,6 @@ function validateStep3() {
       return false;
     }
   }
-
   return true;
 }
 
@@ -221,6 +227,73 @@ function collectFormData() {
     ecgImage: ecgImageBase64,
     symptoms,
     riskFactors,
+  };
+}
+
+// =======================
+// HEAR SCORE (DEMO LOGIC)
+// =======================
+//
+// HEAR: History (H), ECG (E), Age (A), Risk factors (R)
+// Mỗi thành phần 0–2 điểm => tổng 0–8 điểm.
+// Chú ý: đây là mô phỏng đơn giản cho demo UI, không thay thế HEAR chuẩn lâm sàng.
+
+function computeHearScore(data, probability, isCritical) {
+  const { age } = data.patient;
+  const { symptoms, riskFactors } = data;
+
+  // H – History: dựa trên số triệu chứng "điển hình" được chọn "Có"
+  let typicalCount = 0;
+  Object.values(symptoms).forEach((v) => {
+    if (v) typicalCount++;
+  });
+  let H = 0;
+  if (typicalCount <= 2) H = 0;
+  else if (typicalCount <= 4) H = 1;
+  else H = 2;
+
+  // A – Age
+  let A = 0;
+  if (age >= 65) A = 2;
+  else if (age >= 45) A = 1;
+  else A = 0;
+
+  // R – Risk factors: HTN, ĐTĐ, hút thuốc, RL lipid, tiền sử CAD
+  let rfCount = 0;
+  Object.values(riskFactors).forEach((v) => {
+    if (v) rfCount++;
+  });
+  let R = 0;
+  if (rfCount === 0) R = 0;
+  else if (rfCount <= 2) R = 1;
+  else R = 2;
+
+  // E – ECG: vì demo chưa đọc ECG thật, dựa trên xác suất thiếu máu cơ tim + tình trạng nguy kịch
+  let E = 0;
+  if (isCritical || probability > 60) {
+    E = 2; // nghi ngờ biến đổi thiếu máu rõ
+  } else if (probability >= 20) {
+    E = 1; // thay đổi không đặc hiệu / khó loại trừ
+  } else {
+    E = 0; // ECG bình thường / không gợi ý thiếu máu rõ
+  }
+
+  const total = H + E + A + R;
+
+  // phân loại nguy cơ HEAR (demo)
+  let hearRisk = "Rất thấp";
+  if (total <= 1) hearRisk = "Rất thấp (0–1)";
+  else if (total <= 3) hearRisk = "Thấp–trung bình (2–3)";
+  else if (total <= 6) hearRisk = "Trung bình–cao (4–6)";
+  else hearRisk = "Rất cao (7–8)";
+
+  return {
+    total,
+    H,
+    E,
+    A,
+    R,
+    hearRisk,
   };
 }
 
@@ -321,6 +394,26 @@ function mockAnalyze(data) {
       ? "Ưu tiên sinh tồn / rối loạn nhịp"
       : "Tập trung đánh giá thiếu máu cơ tim";
 
+  // HEAR score (demo)
+  const hear = computeHearScore(data, probability, isCritical);
+
+  // ECG details (demo) – sau này backend trả về thật
+  let ecgCategory = "ECG không gợi ý rõ thiếu máu cơ tim cấp (demo).";
+  let ecgSummary =
+    "Demo: mô tả chi tiết ECG (nhịp, trục, ST-T, block, rối loạn dẫn truyền...) sẽ hiển thị ở đây khi mô hình AI đọc ECG hoàn chỉnh.";
+
+  if (isCritical || probability > 60) {
+    ecgCategory =
+      "ECG nghi ngờ thiếu máu cơ tim cấp hoặc biến đổi đáng kể, cần đối chiếu lâm sàng và xét nghiệm (demo).";
+    ecgSummary =
+      "Demo: ECG có bất thường gợi ý thiếu máu cơ tim (ví dụ ST chênh hoặc T thay đổi), cần kết hợp triệu chứng và men tim. Đây chỉ là mô phỏng giao diện, không phải kết quả đọc ECG thật.";
+  } else if (probability >= 20) {
+    ecgCategory =
+      "ECG có thể có thay đổi không đặc hiệu, cần theo dõi và so sánh thêm (demo).";
+    ecgSummary =
+      "Demo: ECG có thể có thay đổi nhẹ, chưa đủ để khẳng định thiếu máu cơ tim. Mô tả chi tiết sẽ do backend AI trả về trong bản triển khai thật.";
+  }
+
   return {
     riskLevel,
     riskColorKey,
@@ -332,12 +425,26 @@ function mockAnalyze(data) {
     },
     priorityTier: priority,
     recommendations: recs,
+    hear, // { total, H, E, A, R, hearRisk }
+    ecgDetails: {
+      category: ecgCategory,
+      summary: ecgSummary,
+    },
   };
 }
 
 // =======================
 // GỌI API (THẬT HOẶC MOCK)
 // =======================
+//
+// Backend nên trả JSON có format tương tự mockAnalyze:
+// {
+//   riskLevel, riskColorKey, probability,
+//   messages: { safety, rhythm, ischemia },
+//   priorityTier, recommendations: [...],
+//   hear: { total, H, E, A, R, hearRisk },
+//   ecgDetails: { summary, category }
+// }
 
 async function analyzeWithAI(payload) {
   if (!API_URL) {
@@ -362,7 +469,6 @@ async function analyzeWithAI(payload) {
     throw new Error("API trả về lỗi HTTP " + response.status);
   }
 
-  // NOTE: Cần thống nhất format JSON trả về từ backend cho giống mockAnalyze
   const result = await response.json();
   return result;
 }
@@ -370,6 +476,46 @@ async function analyzeWithAI(payload) {
 // =======================
 // HIỂN THỊ KẾT QUẢ
 // =======================
+
+function renderHear(hearResult) {
+  if (!hearResult) {
+    hearTotalEl.textContent = "0";
+    hearBreakdownTextEl.textContent = "H: -, E: -, A: -, R: -";
+    hearRiskLabelEl.textContent = "Chưa tính";
+    hearRiskLabelEl.className = "hear-tag bg-light text-muted";
+    return;
+  }
+
+  const { total, H, E, A, R, hearRisk } = hearResult;
+  hearTotalEl.textContent = total.toString();
+  hearBreakdownTextEl.textContent = `H: ${H}, E: ${E}, A: ${A}, R: ${R}`;
+  hearRiskLabelEl.textContent = hearRisk;
+
+  // tô màu theo nguy cơ (demo)
+  hearRiskLabelEl.className = "hear-tag";
+  if (total <= 1) {
+    hearRiskLabelEl.classList.add("bg-success", "text-white");
+  } else if (total <= 3) {
+    hearRiskLabelEl.classList.add("bg-warning", "text-dark");
+  } else if (total <= 6) {
+    hearRiskLabelEl.classList.add("bg-orange-subtle", "text-dark"); // lớp này không chuẩn bootstrap, nhưng vẫn hiển thị ok như class thường
+  } else {
+    hearRiskLabelEl.classList.add("bg-danger", "text-white");
+  }
+}
+
+function renderEcgDetails(ecgDetails) {
+  if (!ecgDetails) {
+    ecgSummaryEl.textContent =
+      "Kết quả mô tả ECG sẽ hiển thị ở đây sau khi AI phân tích.";
+    ecgCategoryEl.textContent = "Phân loại ECG: chưa có dữ liệu.";
+    return;
+  }
+  ecgSummaryEl.textContent = ecgDetails.summary || "";
+  ecgCategoryEl.textContent = `Phân loại ECG: ${
+    ecgDetails.category || "Chưa rõ"
+  }`;
+}
 
 function renderResult(result) {
   resultSection.classList.remove("d-none");
@@ -400,6 +546,12 @@ function renderResult(result) {
     li.textContent = rec;
     recommendationsList.appendChild(li);
   });
+
+  // HEAR
+  renderHear(result.hear);
+
+  // ECG details
+  renderEcgDetails(result.ecgDetails);
 }
 
 // =======================
