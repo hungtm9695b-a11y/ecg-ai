@@ -2,716 +2,104 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <title>AI phát hiện sớm thiếu máu cơ tim - Giai đoạn 2</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Hỗ Trợ Phân Tích ECG</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
   <style>
-    :root {
-      --primary: #1f4fbf;
-      --bg: #f5f7fb;
-      --card: #ffffff;
-      --text: #111827;
-      --muted: #6b7280;
-      --radius-lg: 16px;
-      --shadow: 0 10px 30px rgba(15,23,42,0.12);
-    }
-    * { box-sizing: border-box; }
     body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top left,#e0ebff,#f5f7fb 40%,#f9fafb);
-      color: var(--text);
-    }
-    header {
-      padding: 16px 20px 8px;
-      background: linear-gradient(120deg,#123996,#2155d2);
-      color: #fff;
-      box-shadow: 0 6px 20px rgba(15,23,42,0.35);
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    header h1 {
-      margin: 0 0 4px;
-      font-size: 18px;
-      font-weight: 600;
-    }
-    header p {
-      margin: 0;
-      font-size: 13px;
-      opacity: 0.9;
-    }
-    .container {
-      max-width: 960px;
-      margin: 16px auto 32px;
-      padding: 0 12px;
-    }
-    .stepper {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-      overflow-x: auto;
-      padding-bottom: 4px;
-    }
-    .step-pill {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid #e5e7eb;
-      background: rgba(255,255,255,0.9);
-      font-size: 12px;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-    .step-pill .badge {
-      width: 20px;
-      height: 20px;
-      border-radius: 999px;
-      border: 1px solid #d1d5db;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      background: #f9fafb;
-    }
-    .step-pill.active {
-      border-color: var(--primary);
-      background: var(--primary);
-      color: #fff;
-      box-shadow: 0 6px 18px rgba(37,99,235,0.5);
-    }
-    .step-pill.active .badge {
-      border-color: transparent;
-      background: rgba(255,255,255,0.18);
-      color: #fff;
+      background: #f4f6f9;
+      padding: 30px;
+      font-family: Arial, sans-serif;
     }
     .card {
-      background: var(--card);
-      border-radius: var(--radius-lg);
-      padding: 18px 16px 16px;
-      box-shadow: var(--shadow);
-    }
-    h2 {
-      margin: 0 0 12px;
-      font-size: 18px;
-    }
-    h3 {
-      margin: 18px 0 8px;
-      font-size: 15px;
-    }
-    label {
-      font-size: 13px;
-      display: block;
-      margin-bottom: 4px;
-      color: #374151;
-    }
-    input[type="text"],
-    input[type="number"],
-    select {
-      width: 100%;
-      padding: 7px 9px;
-      border-radius: 10px;
-      border: 1px solid #d1d5db;
-      font-size: 13px;
-      outline: none;
-      background: #f9fafb;
-      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
-    }
-    input:focus,
-    select:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 1px rgba(37,99,235,0.25);
-      background: #ffffff;
-    }
-    .row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .col-2 { flex: 1 1 48%; min-width: 160px; }
-    .col-3 { flex: 1 1 30%; min-width: 120px; }
-    .checkbox-group label,
-    .radio-group label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 4px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-    input[type="checkbox"],
-    input[type="radio"] {
-      accent-color: var(--primary);
-      transform: scale(1.05);
-    }
-    .buttons {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      margin-top: 14px;
-      flex-wrap: wrap;
-    }
-    button {
+      border-radius: 14px;
+      box-shadow: 0px 6px 16px rgba(0,0,0,0.08);
       border: none;
-      border-radius: 999px;
-      padding: 8px 16px;
-      font-size: 13px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
     }
-    .btn-primary {
-      background: var(--primary);
-      color: #fff;
-    }
-    .btn-secondary {
-      background: #e5e7eb;
-      color: #111827;
-    }
-    .btn-full {
-      flex: 1 1 100%;
-      justify-content: center;
-    }
-    .hidden { display: none; }
-    .preview-ecg {
-      border-radius: 10px;
-      border: 1px dashed #cbd5e1;
-      padding: 8px;
-      font-size: 12px;
-      color: #6b7280;
-      text-align: center;
-      margin-top: 6px;
-      background: #f9fafb;
-    }
-    .preview-ecg img {
-      max-width: 100%;
-      max-height: 260px;
-      margin-top: 6px;
-      border-radius: 6px;
-    }
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 3px 8px;
-      border-radius: 999px;
-      background: rgba(15,23,42,0.08);
-      font-size: 11px;
-      color: #111827;
-      margin-top: 6px;
-    }
-    .pill-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: rgba(15,23,42,0.5);
-    }
-    .risk-card {
-      border-radius: 16px;
-      padding: 16px 14px;
-      margin-bottom: 14px;
-      color: #fff;
-    }
-    .risk-low { background: linear-gradient(135deg,#16a34a,#22c55e); }
-    .risk-medium { background: linear-gradient(135deg,#f97316,#facc15); }
-    .risk-high { background: linear-gradient(135deg,#dc2626,#f97373); }
-    .risk-critical { background: linear-gradient(135deg,#7f1d1d,#b91c1c); }
-    .risk-card h2 {
-      margin: 0 0 4px;
-      font-size: 18px;
-    }
-    .risk-card p {
-      margin: 2px 0;
-      font-size: 13px;
-    }
-    .risk-card .pill {
-      background: rgba(15,23,42,0.18);
-      color: #f9fafb;
-    }
-    ul {
-      margin: 4px 0 4px 18px;
-      padding: 0;
-      font-size: 13px;
-    }
-    footer {
-      text-align: center;
-      font-size: 11px;
-      color: #9ca3af;
-      padding: 16px 0 24px;
-    }
-    .status-text {
-      font-size: 12px;
-      margin-top: 4px;
-      color: #4b5563;
-    }
-    .status-loading { color: #1f4fbf; }
-    .status-error { color: #b91c1c; }
-    .status-success { color: #15803d; }
-    @media (max-width: 600px) {
-      header h1 { font-size: 16px; }
-      .container { padding: 0 10px; }
-      .card { padding: 14px 12px 12px; }
-      .row { gap: 8px; }
+    textarea { resize: none; }
+    pre {
+      background: #1e1e1e;
+      color: #00ffea;
+      padding: 20px;
+      border-radius: 12px;
+      max-height: 350px;
+      overflow-y: auto;
     }
   </style>
 </head>
+
 <body>
-<header>
-  <h1>AI phát hiện sớm thiếu máu cơ tim</h1>
-  <p>Tuyến cơ sở • AI đa tầng (Sinh tồn → Nhịp → Thiếu máu cơ tim) • Backend AI đọc ECG</p>
-</header>
+  <div class="container" style="max-width: 900px;">
+    <h2 class="text-center fw-bold mb-4">🫀 AI HỖ TRỢ PHÂN TÍCH ĐIỆN TIM (ECG)</h2>
 
-<div class="container">
-  <div class="stepper">
-    <div class="step-pill active" id="stepLabel1">
-      <span class="badge">1</span> Thông tin & sinh tồn
-    </div>
-    <div class="step-pill" id="stepLabel2">
-      <span class="badge">2</span> ECG
-    </div>
-    <div class="step-pill" id="stepLabel3">
-      <span class="badge">3</span> Triệu chứng
-    </div>
-    <div class="step-pill" id="stepLabel4">
-      <span class="badge">4</span> Kết quả AI
-    </div>
-  </div>
+    <div class="card p-4">
 
-  <!-- STEP 1 -->
-  <div class="card" id="step1">
-    <h2>Bước 1. Thông tin bệnh nhân & chỉ số sinh tồn</h2>
-    <div class="row">
-      <div class="col-2">
-        <label>Họ và tên (tuỳ chọn)</label>
-        <input type="text" id="patientName" placeholder="VD: Nguyễn Văn A" />
-      </div>
-      <div class="col-2">
-        <label>Tuổi</label>
-        <input type="number" id="patientAge" placeholder="VD: 58" />
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-2">
-        <label>Giới</label>
-        <select id="patientGender">
-          <option value="">Chọn</option>
-          <option value="nam">Nam</option>
-          <option value="nu">Nữ</option>
-        </select>
-      </div>
-    </div>
-
-    <h3>Chỉ số sinh tồn</h3>
-    <div class="row">
-      <div class="col-3">
-        <label>Huyết áp (mmHg)</label>
-        <input type="text" id="bp" placeholder="VD: 110/70" />
-      </div>
-      <div class="col-3">
-        <label>Mạch (lần/phút)</label>
-        <input type="number" id="hr" placeholder="VD: 80" />
-      </div>
-      <div class="col-3">
-        <label>Nhịp thở (lần/phút)</label>
-        <input type="number" id="rr" placeholder="VD: 18" />
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-3">
-        <label>SpO₂ (%)</label>
-        <input type="number" id="spo2" placeholder="VD: 97" />
-      </div>
-      <div class="col-3">
-        <label>Tri giác</label>
-        <select id="consciousness">
-          <option value="tinh">Tỉnh táo</option>
-          <option value="lom">Lơ mơ</option>
-          <option value="honme">Hôn mê</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="buttons">
-      <span></span>
-      <button class="btn-primary" onclick="goToStep(2)">Tiếp tục →</button>
-    </div>
-  </div>
-
-  <!-- STEP 2 -->
-  <div class="card hidden" id="step2">
-    <h2>Bước 2. ECG – ảnh & AI backend</h2>
-    <label>Chụp hoặc tải ảnh ECG (jpg/png)</label>
-    <input type="file" id="ecgFile" accept="image/*" />
-    <div class="preview-ecg" id="ecgPreview">
-      Chưa có ảnh ECG. Vui lòng chọn tệp bên trên.
-    </div>
-    <div id="ecgStatus" class="status-text"></div>
-
-    <h3>Kết quả AI-ECG & điều chỉnh (nếu cần)</h3>
-    <div class="checkbox-group">
-      <label>
-        <input type="checkbox" id="ecgIschemia" />
-        AI nghi ngờ thiếu máu cơ tim (ST–T bất thường, Q bệnh lý...)
-      </label>
-      <label>
-        <input type="checkbox" id="ecgDangerousRhythm" />
-        Có rối loạn nhịp nguy hiểm (VT, VF, block AV III, nhịp chậm nặng...)
-      </label>
-      <label>
-        <input type="checkbox" id="ecgOtherAbnormal" />
-        Bất thường khác (LVH, block nhánh, ngoại tâm thu...) nhưng không gợi ý thiếu máu cơ tim
-      </label>
-    </div>
-
-    <div class="buttons">
-      <button class="btn-secondary" onclick="goToStep(1)">← Quay lại</button>
-      <button class="btn-primary" onclick="goToStep(3)">Tiếp tục →</button>
-    </div>
-  </div>
-
-  <!-- STEP 3 -->
-  <div class="card hidden" id="step3">
-    <h2>Bước 3. Triệu chứng & yếu tố nguy cơ (AI lâm sàng)</h2>
-
-    <h3>Câu hỏi triệu chứng (bác sĩ chỉ cần tick)</h3>
-    <div class="radio-group">
-      <label><input type="checkbox" class="symptom" id="sym1" /> Đau xuất hiện khi gắng sức</label>
-      <label><input type="checkbox" class="symptom" id="sym2" /> Vị trí đau sau xương ức hoặc lan tay trái</label>
-      <label><input type="checkbox" class="symptom" id="sym3" /> Tính chất đau tức/bóp nghẹt</label>
-      <label><input type="checkbox" class="symptom" id="sym4" /> Cơn đau kéo dài &gt; 10 phút</label>
-      <label><input type="checkbox" class="symptom" id="sym5" /> Đau giảm khi nghỉ hoặc dùng nitroglycerin</label>
-      <label><input type="checkbox" class="symptom" id="sym6" /> Có khó thở, vã mồ hôi, buồn nôn kèm theo</label>
-    </div>
-
-    <h3>Yếu tố nguy cơ tim mạch</h3>
-    <div class="checkbox-group">
-      <label><input type="checkbox" id="rf_htn" class="risk" /> Tăng huyết áp</label>
-      <label><input type="checkbox" id="rf_dm" class="risk" /> Đái tháo đường</label>
-      <label><input type="checkbox" id="rf_smoke" class="risk" /> Hút thuốc lá</label>
-      <label><input type="checkbox" id="rf_dys" class="risk" /> Rối loạn lipid máu</label>
-      <label><input type="checkbox" id="rf_cad" class="risk" /> Tiền sử bệnh mạch vành</label>
-    </div>
-
-    <div class="buttons">
-      <button class="btn-secondary" onclick="goToStep(2)">← Quay lại</button>
-      <button class="btn-primary" onclick="calculateAndShowResult()">Phân tích bằng AI →</button>
-    </div>
-  </div>
-
-  <!-- STEP 4 -->
-  <div class="card hidden" id="step4">
-    <h2>Bước 4. Kết quả phân tích AI</h2>
-
-    <div id="resultRiskCard"></div>
-
-    <div class="card" style="background:#f9fafb;margin-top:10px;">
-      <h3>Giải thích tầng AI & khuyến cáo</h3>
-      <p id="vitalSummary"></p>
-      <p id="rhythmSummary"></p>
-      <p id="ischemiaSummary"></p>
-
-      <h3>Gợi ý xử trí (demo)</h3>
-      <ul id="recommendationList"></ul>
-
-      <div id="hearSummary" style="margin-top:10px;"></div>
-    </div>
-
-    <div class="buttons">
-      <button class="btn-secondary" onclick="goToStep(3)">← Quay lại</button>
-      <button class="btn-primary btn-full" onclick="resetForm()">Tạo ca mới</button>
-    </div>
-  </div>
-</div>
-
-<footer>
-  Demo ý tưởng: AI đa tầng + HEAR + backend AI-ECG hỗ trợ phát hiện sớm thiếu máu cơ tim tại tuyến cơ sở. Không dùng thay thế chẩn đoán của bác sĩ.
-</footer>
-
-<script>
-  function goToStep(step) {
-    for (let i = 1; i <= 4; i++) {
-      document.getElementById("step" + i).classList.add("hidden");
-      document.getElementById("stepLabel" + i).classList.remove("active");
-    }
-    document.getElementById("step" + step).classList.remove("hidden");
-    document.getElementById("stepLabel" + step).classList.add("active");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function parseBloodPressure(text) {
-    if (!text) return { sbp: NaN, dbp: NaN };
-    const cleaned = text.replace(/\s+/g, "");
-    const parts = cleaned.split("/");
-    if (parts.length === 2) {
-      return { sbp: parseInt(parts[0]), dbp: parseInt(parts[1]) };
-    }
-    return { sbp: parseInt(cleaned), dbp: NaN };
-  }
-
-  function calculateHEAR() {
-    let H = 0, E = 0, A = 0, R = 0;
-
-    const symptomCount = document.querySelectorAll(".symptom:checked").length;
-    if (symptomCount <= 2) H = 0;
-    else if (symptomCount <= 4) H = 1;
-    else H = 2;
-
-    const ischemia = document.getElementById("ecgIschemia").checked;
-    const other = document.getElementById("ecgOtherAbnormal").checked;
-    if (!ischemia && !other) E = 0;
-    else if (other && !ischemia) E = 1;
-    else if (ischemia) E = 2;
-
-    const age = parseInt(document.getElementById("patientAge").value);
-    if (age < 45) A = 0;
-    else if (age < 65) A = 1;
-    else A = 2;
-
-    const riskCount = document.querySelectorAll(".risk:checked").length;
-    if (riskCount === 0) R = 0;
-    else if (riskCount <= 2) R = 1;
-    else R = 2;
-
-    return { H, E, A, R, total: H + E + A + R };
-  }
-
-  const ecgFileInput = document.getElementById("ecgFile");
-  const ecgPreview = document.getElementById("ecgPreview");
-  const ecgStatus = document.getElementById("ecgStatus");
-
-  ecgFileInput.addEventListener("change", async function () {
-    const file = this.files[0];
-    if (!file) {
-      ecgPreview.innerHTML = "Chưa có ảnh ECG. Vui lòng chọn tệp bên trên.";
-      ecgStatus.textContent = "";
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      ecgPreview.innerHTML = "Ảnh ECG xem trước:";
-      const img = document.createElement("img");
-      img.src = e.target.result;
-      ecgPreview.appendChild(img);
-    };
-    reader.readAsDataURL(file);
-
-    await callAIEcgBackend(file);
-  });
-
-  async function callAIEcgBackend(file) {
-    ecgStatus.textContent = "AI đang phân tích ECG...";
-    ecgStatus.className = "status-text status-loading";
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const API_URL = "https://your-backend-domain.com/api/ecg-analyze"; // IT sửa URL này
-
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        body: formData
-      });
-
-      if (!res.ok) {
-        throw new Error("API error: " + res.status);
-      }
-
-      const data = await res.json();
-
-      document.getElementById("ecgIschemia").checked = !!data.ischemia;
-      document.getElementById("ecgDangerousRhythm").checked = !!data.dangerous_arrhythmia;
-      document.getElementById("ecgOtherAbnormal").checked =
-        Array.isArray(data.other_abnormal) && data.other_abnormal.length > 0;
-
-      const probIsch = data.probabilities && data.probabilities.ischemia != null
-        ? Math.round(data.probabilities.ischemia * 100) + "%"
-        : "không rõ";
-      const probArr = data.probabilities && data.probabilities.dangerous_arrhythmia != null
-        ? Math.round(data.probabilities.dangerous_arrhythmia * 100) + "%"
-        : "không rõ";
-
-      ecgStatus.textContent =
-        "AI-ECG: thiếu máu cơ tim " + probIsch +
-        ", rối loạn nhịp nguy hiểm " + probArr + ". Bác sĩ có thể chỉnh các ô bên dưới nếu cần.";
-      ecgStatus.className = "status-text status-success";
-    } catch (error) {
-      console.error(error);
-      ecgStatus.textContent =
-        "Không gọi được AI-ECG (lỗi mạng hoặc server). Có thể tick tay để tiếp tục.";
-      ecgStatus.className = "status-text status-error";
-    }
-  }
-
-  function calculateAndShowResult() {
-    const bpText = document.getElementById("bp").value;
-    const { sbp } = parseBloodPressure(bpText);
-    const hr = parseInt(document.getElementById("hr").value);
-    const rr = parseInt(document.getElementById("rr").value);
-    const spo2 = parseInt(document.getElementById("spo2").value);
-    const consciousness = document.getElementById("consciousness").value;
-
-    let vitalsCritical = false;
-    let vitalReasons = [];
-
-    if (!isNaN(sbp) && sbp < 90) {
-      vitalsCritical = true;
-      vitalReasons.push("Huyết áp thấp (SBP < 90 mmHg)");
-    }
-    if (!isNaN(hr) && (hr < 40 || hr > 140)) {
-      vitalsCritical = true;
-      vitalReasons.push("Mạch bất thường (< 40 hoặc > 140 l/p)");
-    }
-    if (!isNaN(rr) && rr > 30) {
-      vitalsCritical = true;
-      vitalReasons.push("Nhịp thở nhanh (> 30 l/p)");
-    }
-    if (!isNaN(spo2) && spo2 < 90) {
-      vitalsCritical = true;
-      vitalReasons.push("SpO₂ thấp (< 90%)");
-    }
-    if (consciousness !== "tinh") {
-      vitalsCritical = true;
-      vitalReasons.push("Tri giác không tỉnh táo");
-    }
-
-    const dangerousRhythm = document.getElementById("ecgDangerousRhythm").checked;
-    const ecgIschemia = document.getElementById("ecgIschemia").checked;
-    const ecgOther = document.getElementById("ecgOtherAbnormal").checked;
-
-    const symptomsChecked = document.querySelectorAll(".symptom:checked").length;
-    const riskChecked = document.querySelectorAll(".risk:checked").length;
-
-    let riskClass = "";
-    let riskTitle = "";
-    let riskSubtitle = "";
-    let probability = 0;
-    let vitalExplain = "";
-    let rhythmExplain = "";
-    let ischemiaExplain = "";
-    let recommendations = [];
-
-    if (vitalsCritical) {
-      riskClass = "risk-critical";
-      riskTitle = "TÌNH TRẠNG NGUY KỊCH – ƯU TIÊN CẤP CỨU";
-      riskSubtitle = "Chỉ số sinh tồn cho thấy tình trạng không ổn định. Cần xử trí ABC và tổ chức chuyển tuyến khẩn.";
-      probability = 0.9;
-      vitalExplain = "AI Safety (sinh tồn): phát hiện nguy cơ cao do: " + vitalReasons.join("; ") + ".";
-      rhythmExplain = "AI Rhythm: chưa ưu tiên phân tích chi tiết rối loạn nhịp khi sinh tồn chưa ổn định.";
-      ischemiaExplain = "AI thiếu máu cơ tim: chỉ tham khảo, không trì hoãn cấp cứu để chờ thêm xét nghiệm.";
-      recommendations.push("Ưu tiên ABC: đường thở, hô hấp, tuần hoàn.");
-      recommendations.push("Gọi hỗ trợ cấp cứu nội viện/tuyến trên.");
-      recommendations.push("Chuẩn bị chuyển tuyến sớm, theo dõi sát trên đường vận chuyển.");
-    } else if (dangerousRhythm) {
-      riskClass = "risk-high";
-      riskTitle = "RỐI LOẠN NHỊP NGUY HIỂM – CẦN CẤP CỨU";
-      riskSubtitle = "AI Rhythm phát hiện rối loạn nhịp có nguy cơ đe doạ tính mạng. Cần xử trí khẩn và cân nhắc chuyển tuyến.";
-      probability = 0.9;
-      vitalExplain = "AI Safety (sinh tồn): chưa ghi nhận tiêu chí sốc rõ, nhưng vẫn cần theo dõi sát.";
-      rhythmExplain = "AI Rhythm: ưu tiên xử trí rối loạn nhịp (sốc điện/thuốc theo phác đồ).";
-      ischemiaExplain = "AI thiếu máu cơ tim: đánh giá thêm sau khi đã kiểm soát nhịp và huyết động.";
-      recommendations.push("Xử trí rối loạn nhịp theo phác đồ hiện hành.");
-      recommendations.push("Theo dõi sát huyết động.");
-      recommendations.push("Chuẩn bị chuyển tuyến đến cơ sở có hồi sức tích cực/can thiệp.");
-    } else {
-      let score = 0;
-      if (ecgIschemia) score += 4;
-      score += symptomsChecked;
-      score += riskChecked * 0.5;
-
-      const maxScore = 11;
-      probability = Math.max(0, Math.min(1, score / maxScore));
-
-      vitalExplain = "AI Safety (sinh tồn): không ghi nhận tiêu chí sốc/suy hô hấp rõ.";
-      rhythmExplain = "AI Rhythm: không phát hiện rối loạn nhịp nguy hiểm cần xử trí ưu tiên.";
-      ischemiaExplain = "AI thiếu máu cơ tim (Fusion): kết hợp ECG, triệu chứng và yếu tố nguy cơ để ước tính xác suất thiếu máu cơ tim.";
-
-      if (probability < 0.2) {
-        riskClass = "risk-low";
-        riskTitle = "NGUY CƠ THIẾU MÁU CƠ TIM: THẤP";
-        riskSubtitle = "Hiện ít gợi ý thiếu máu cơ tim cấp. Có thể theo dõi tại tuyến cơ sở nếu không có yếu tố cảnh báo khác.";
-        recommendations.push("Theo dõi triệu chứng và chỉ số sinh tồn.");
-        recommendations.push("Lặp lại ECG nếu triệu chứng thay đổi/xấu đi.");
-        if (ecgOther) recommendations.push("ECG có bất thường khác, nên khám chuyên khoa tim mạch khi thuận tiện.");
-      } else if (probability < 0.6) {
-        riskClass = "risk-medium";
-        riskTitle = "NGUY CƠ THIẾU MÁU CƠ TIM: TRUNG BÌNH";
-        riskSubtitle = "Có khả năng thiếu máu cơ tim. Cần theo dõi sát, lặp lại ECG và cân nhắc hội chẩn.";
-        recommendations.push("Theo dõi sát triệu chứng, lặp lại ECG trong 10–30 phút.");
-        recommendations.push("Cân nhắc hội chẩn từ xa với bác sĩ tim mạch.");
-        recommendations.push("Chuẩn bị phương án chuyển tuyến nếu triệu chứng tăng dần.");
-      } else {
-        riskClass = "risk-high";
-        riskTitle = "NGUY CƠ THIẾU MÁU CƠ TIM: CAO";
-        riskSubtitle = "Nguy cơ cao thiếu máu cơ tim cấp. Cần chuyển tuyến khẩn đến cơ sở có can thiệp mạch vành.";
-        recommendations.push("Ổn định sinh tồn, chuẩn bị chuyển tuyến sớm.");
-        recommendations.push("Theo dõi sát HA, mạch, SpO₂ trong quá trình vận chuyển.");
-        recommendations.push("Chuẩn bị thuốc, đường truyền, oxy theo phác đồ.");
-      }
-    }
-
-    const probText = (probability * 100).toFixed(0) + "%";
-    const resultDiv = document.getElementById("resultRiskCard");
-    resultDiv.innerHTML = `
-      <div class="risk-card ${riskClass}">
-        <h2>${riskTitle}</h2>
-        <p>${riskSubtitle}</p>
-        <div class="pill">
-          <span class="pill-dot"></span>
-          Xác suất ước tính (demo): <b>${probText}</b>
-        </div>
-      </div>
-    `;
-
-    document.getElementById("vitalSummary").textContent = vitalExplain;
-    document.getElementById("rhythmSummary").textContent = rhythmExplain;
-    document.getElementById("ischemiaSummary").textContent = ischemiaExplain;
-
-    const recList = document.getElementById("recommendationList");
-    recList.innerHTML = "";
-    recommendations.forEach(r => {
-      const li = document.createElement("li");
-      li.textContent = r;
-      recList.appendChild(li);
-    });
-
-    const hear = calculateHEAR();
-    const hearDiv = document.getElementById("hearSummary");
-    hearDiv.innerHTML = `
-      <h3>HEAR score (tham khảo ESC/AHA)</h3>
-      <p><b>Tổng điểm: ${hear.total} / 8</b></p>
-      <p>History: ${hear.H} • ECG: ${hear.E} • Age: ${hear.A} • Risk: ${hear.R}</p>
-      <p style="font-size:11px;color:#6b7280;">
-        HEAR score chỉ dùng như thông tin tham khảo theo guideline quốc tế,
-        không thay thế phân tầng an toàn bằng AI đa tầng của ứng dụng.
+      <p class="text-muted">
+        Đây là bản chạy trực tiếp trên GitHub Pages.  
+        Bác cần nhập OpenAI API key mỗi lần dùng (không lưu trên web).
       </p>
-    `;
 
-    goToStep(4);
-  }
+      <!-- API KEY -->
+      <label class="fw-bold mt-2">🔑 OpenAI API Key:</label>
+      <input type="password" id="apiKey" class="form-control" placeholder="Nhập API key của bác…">
 
-  function resetForm() {
-    document.querySelectorAll("input, select").forEach(el => {
-      if (el.type === "checkbox" || el.type === "radio") el.checked = false;
-      else if (el.tagName.toLowerCase() === "select") el.selectedIndex = 0;
-      else el.value = "";
-    });
-    ecgPreview.innerHTML = "Chưa có ảnh ECG. Vui lòng chọn tệp bên trên.";
-    ecgStatus.textContent = "";
-    document.getElementById("resultRiskCard").innerHTML = "";
-    document.getElementById("vitalSummary").textContent = "";
-    document.getElementById("rhythmSummary").textContent = "";
-    document.getElementById("ischemiaSummary").textContent = "";
-    document.getElementById("recommendationList").innerHTML = "";
-    document.getElementById("hearSummary").innerHTML = "";
-    goToStep(1);
-  }
-</script>
-<script src="script.js"></script>
+      <!-- ECG -->
+      <label class="fw-bold mt-4">📉 Mô tả ECG:</label>
+      <textarea id="ecg" rows="4" class="form-control" placeholder="Nhập mô tả điện tim hoặc kết luận ECG…"></textarea>
+
+      <!-- TRIỆU CHỨNG -->
+      <label class="fw-bold mt-4">🩺 Triệu chứng:</label>
+      <textarea id="symptom" rows="3" class="form-control" placeholder="Nhập triệu chứng bệnh nhân…"></textarea>
+
+      <!-- BUTTON -->
+      <button onclick="goiAI()" class="btn btn-primary w-100 mt-4" style="font-size: 18px; padding: 10px;">
+        🚀 Phân Tích Bằng AI
+      </button>
+
+      <h5 class="fw-bold mt-4">📘 Kết quả AI trả về:</h5>
+      <pre id="output">Chưa có kết quả…</pre>
+
+    </div>
+  </div>
+
+  <script>
+    async function goiAI() {
+      const apiKey = document.getElementById("apiKey").value.trim();
+      const ecg = document.getElementById("ecg").value;
+      const symptom = document.getElementById("symptom").value;
+
+      if (!apiKey) {
+        alert("Bác phải nhập API key.");
+        return;
+      }
+
+      document.getElementById("output").innerText = "⏳ Đang gọi AI…";
+
+      try {
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: "Bạn là chuyên gia tim mạch hỗ trợ phân tích ECG và triệu chứng." },
+              { role: "user", content: `ECG: ${ecg}\nTriệu chứng: ${symptom}\nHãy phân tích nguy cơ thiếu máu cơ tim và đưa ra gợi ý xử trí.` }
+            ]
+          })
+        });
+
+        const data = await res.json();
+        document.getElementById("output").innerText = JSON.stringify(data, null, 2);
+
+      } catch (err) {
+        document.getElementById("output").innerText = "❌ Lỗi: " + err.message;
+      }
+    }
+  </script>
 </body>
 </html>
