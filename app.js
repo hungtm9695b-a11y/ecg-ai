@@ -189,4 +189,254 @@ function collectFormData() {
   try {
     const [sbpStr, dbpStr] = bp.split("/");
     sbp = parseInt(sbpStr.trim(), 10);
-    dbp = parseInt(d
+    dbp = parseInt(dbpStr.trim(), 10);
+  } catch (e) {
+    // đã kiểm tra ở bước validateStep1
+  }
+
+  const hr = parseInt(document.getElementById("heart-rate").value.trim(), 10);
+  const rr = parseInt(document.getElementById("resp-rate").value.trim(), 10);
+  const spo2 = parseInt(document.getElementById("spo2").value.trim(), 10);
+  const consciousness = document.getElementById("consciousness").value;
+
+  // symptoms
+  const symptoms = {};
+  for (let i = 1; i <= 6; i++) {
+    const val = document.querySelector(`input[name="sym${i}"]:checked`)?.value;
+    symptoms[`sym${i}`] = val === "yes";
+  }
+
+  // risk factors
+  const riskFactors = {
+    htn: document.getElementById("rf-htn").checked,
+    dm: document.getElementById("rf-dm").checked,
+    smoke: document.getElementById("rf-smoke").checked,
+    lipid: document.getElementById("rf-lipid").checked,
+    cad: document.getElementById("rf-cad").checked,
+  };
+
+  return {
+    patient: { name, age, sex },
+    vitals: { sbp, dbp, hr, rr, spo2, consciousness },
+    ecgImage: ecgImageBase64,
+    symptoms,
+    riskFactors,
+  };
+}
+
+// =======================
+// MOCK AI – CHẠY TRÊN TRÌNH DUYỆT
+// =======================
+
+function mockAnalyze(data) {
+  // Tầng 0: Safety
+  let isCritical = false;
+  let safetyExplanation = "Không ghi nhận dấu hiệu sinh tồn nguy kịch rõ rệt.";
+
+  const { sbp, hr, rr, spo2, consciousness } = data.vitals;
+
+  if (
+    (sbp && sbp < 90) ||
+    (hr && (hr < 40 || hr > 140)) ||
+    (rr && rr > 30) ||
+    (spo2 && spo2 < 90) ||
+    (consciousness && consciousness !== "alert")
+  ) {
+    isCritical = true;
+    safetyExplanation =
+      "Có ít nhất một dấu hiệu sinh tồn nguy kịch (HA thấp, nhịp tim bất thường, SpO₂ thấp hoặc tri giác thay đổi).";
+  }
+
+  // Tầng 1: Rhythm – mock đơn giản
+  let rhythmDangerous = false;
+  let rhythmExplanation =
+    "Chưa phát hiện rối loạn nhịp nguy hiểm trong mô hình thử nghiệm (demo chưa đọc ECG thật).";
+
+  // Tầng 2: Ischemia – dựa trên triệu chứng + yếu tố nguy cơ
+  let ischemiaScore = 0;
+  Object.values(data.symptoms).forEach((v) => {
+    if (v) ischemiaScore += 1.5; // mỗi triệu chứng 'có' +1.5
+  });
+  Object.values(data.riskFactors).forEach((v) => {
+    if (v) ischemiaScore += 1.0; // mỗi yếu tố nguy cơ +1
+  });
+
+  // Chuẩn hóa ra xác suất 0-100 (demo)
+  let probability = Math.round(Math.min(100, ischemiaScore * 10));
+
+  let riskLevel = "Thấp";
+  let riskColorKey = "low";
+  let recs = [];
+
+  if (isCritical) {
+    riskLevel = "Nguy kịch";
+    riskColorKey = "critical";
+    probability = Math.max(probability, 80);
+    recs.push(
+      "Ưu tiên đảm bảo ABC, đặt đường truyền, thở oxy, chuyển tuyến cấp cứu có can thiệp."
+    );
+    recs.push(
+      "Gọi hỗ trợ cấp cứu nội viện (Code Blue) nếu tại khoa cấp cứu."
+    );
+  } else if (probability > 60) {
+    riskLevel = "Cao";
+    riskColorKey = "high";
+    recs.push(
+      "Chuyển tuyến hoặc hội chẩn tim mạch càng sớm càng tốt, cân nhắc nhập viện theo dõi."
+    );
+    recs.push(
+      "Làm thêm xét nghiệm men tim (troponin) nếu có điều kiện, theo dõi ECG lặp lại."
+    );
+  } else if (probability >= 20) {
+    riskLevel = "Trung bình";
+    riskColorKey = "medium";
+    recs.push(
+      "Theo dõi sát triệu chứng, cân nhắc làm thêm xét nghiệm và ECG lặp lại."
+    );
+    recs.push(
+      "Tư vấn thay đổi lối sống và kiểm soát tốt các yếu tố nguy cơ tim mạch."
+    );
+  } else {
+    riskLevel = "Thấp";
+    riskColorKey = "low";
+    recs.push(
+      "Có thể theo dõi ngoại trú, dặn bệnh nhân quay lại ngay nếu đau ngực tái phát hoặc nặng lên."
+    );
+    recs.push(
+      "Tiếp tục kiểm soát huyết áp, đường máu, lipid máu và bỏ thuốc lá nếu có."
+    );
+  }
+
+  let ischemiaExplanation = `Dựa trên tổng số triệu chứng và yếu tố nguy cơ, điểm thiếu máu cơ tim ước tính tương ứng với xác suất khoảng ${probability}%.`;
+  if (probability < 20) {
+    ischemiaExplanation += " Nguy cơ thấp.";
+  } else if (probability <= 60) {
+    ischemiaExplanation += " Nguy cơ trung bình.";
+  } else {
+    ischemiaExplanation += " Nguy cơ cao.";
+  }
+
+  const priority =
+    isCritical || rhythmDangerous
+      ? "Ưu tiên sinh tồn / rối loạn nhịp"
+      : "Tập trung đánh giá thiếu máu cơ tim";
+
+  return {
+    riskLevel,
+    riskColorKey,
+    probability,
+    messages: {
+      safety: safetyExplanation,
+      rhythm: rhythmExplanation,
+      ischemia: ischemiaExplanation,
+    },
+    priorityTier: priority,
+    recommendations: recs,
+  };
+}
+
+// =======================
+// GỌI API (THẬT HOẶC MOCK)
+// =======================
+
+async function analyzeWithAI(payload) {
+  if (!API_URL) {
+    // Không có backend ⇒ dùng mock
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(mockAnalyze(payload));
+      }, 800); // giả lập thời gian chờ
+    });
+  }
+
+  // Có backend ⇒ gọi fetch
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error("API trả về lỗi HTTP " + response.status);
+  }
+
+  // NOTE: Cần thống nhất format JSON trả về từ backend cho giống mockAnalyze
+  const result = await response.json();
+  return result;
+}
+
+// =======================
+// HIỂN THỊ KẾT QUẢ
+// =======================
+
+function renderResult(result) {
+  resultSection.classList.remove("d-none");
+  resultError.classList.add("d-none");
+
+  // risk chip
+  riskChip.textContent = `Nguy cơ: ${result.riskLevel}`;
+  riskChip.className = "risk-chip";
+  if (result.riskColorKey === "low") riskChip.classList.add("risk-low");
+  else if (result.riskColorKey === "medium")
+    riskChip.classList.add("risk-medium");
+  else if (result.riskColorKey === "high")
+    riskChip.classList.add("risk-high");
+  else if (result.riskColorKey === "critical")
+    riskChip.classList.add("risk-critical");
+
+  probabilityText.textContent = `${result.probability}%`;
+  priorityTier.textContent = result.priorityTier || "";
+
+  explainSafety.textContent = result.messages?.safety || "";
+  explainRhythm.textContent = result.messages?.rhythm || "";
+  explainIschemia.textContent = result.messages?.ischemia || "";
+
+  // recommendations
+  recommendationsList.innerHTML = "";
+  (result.recommendations || []).forEach((rec) => {
+    const li = document.createElement("li");
+    li.textContent = rec;
+    recommendationsList.appendChild(li);
+  });
+}
+
+// =======================
+// SUBMIT
+// =======================
+
+btnSubmit.addEventListener("click", async () => {
+  // đảm bảo dữ liệu hợp lệ lần cuối
+  if (!validateStep1() || !validateStep2() || !validateStep3()) {
+    currentStep = 1;
+    showStep(1);
+    return;
+  }
+
+  const payload = collectFormData();
+
+  // UI loading
+  resultSection.classList.add("d-none");
+  resultError.classList.add("d-none");
+  resultLoading.classList.remove("d-none");
+  submitSpinner.classList.remove("d-none");
+  submitText.textContent = "Đang phân tích...";
+
+  try {
+    const result = await analyzeWithAI(payload);
+    renderResult(result);
+  } catch (err) {
+    console.error(err);
+    resultError.textContent =
+      "Không gọi được API AI. Vui lòng kiểm tra lại đường dẫn backend hoặc thử lại sau.";
+    resultError.classList.remove("d-none");
+  } finally {
+    resultLoading.classList.add("d-none");
+    submitSpinner.classList.add("d-none");
+    submitText.textContent = "Gửi AI phân tích";
+  }
+});
+
+// init
+showStep(currentStep);
