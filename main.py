@@ -3,6 +3,13 @@ from pydantic import BaseModel
 from typing import Dict, List, Optional
 
 app = FastAPI(title="ECG Ischemia AI Demo Backend")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],          # demo: cho phép tất cả, sau này có thể giới hạn domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # ====== ĐỊNH NGHĨA DỮ LIỆU NHẬN TỪ FRONTEND ======
