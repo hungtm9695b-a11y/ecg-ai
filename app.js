@@ -5,7 +5,7 @@
 // TODO: Khi anh có backend, chỉ cần thay API_URL = "https://.../api";
 // Nếu để chuỗi rỗng "", web sẽ dùng MOCK AI chạy ngay trên trình duyệt.
 
-const API_URL = "https://ecg-ai.onrender.com/analyze"; // VD: "https://ecg-ai.your-backend.com/analyze"
+const API_URL = "https://ecg-ai.onrender.com/analyze";
 
 let currentStep = 1;
 const totalSteps = 4;
